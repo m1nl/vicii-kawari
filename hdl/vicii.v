@@ -53,13 +53,15 @@ module vicii
            input standard_sw,
            output rst,
            input clk_dot4x,
-`ifdef EFINIX
-`ifdef WITH_DVI
+`ifdef HAVE_SYNC_MODULE
            input clk_dvi,
            input rst_dvi,
 `endif
-`endif
            output clk_phi,
+           output phi2_l,
+           output phi2_p,
+           output phi2_h,
+           output phi2_n,
            input clk_col16x,
 `ifdef EFINIX
            input clk_col16x_4tm,
@@ -424,6 +426,11 @@ always @(posedge clk_dot4x)
     end else
         phi_phase_start <= {phi_phase_start[14:0], phi_phase_start[15]};
 
+assign phi2_l = !phi_gen[0] && phi_phase_start[1];
+assign phi2_p =  phi_gen[0] && phi_phase_start[0];
+assign phi2_h =  phi_gen[0] && phi_phase_start[7];
+assign phi2_n =  phi_gen[0] && phi_phase_start[15];
+
 // This is simply raster_x divided by 8.
 assign cycle_num = raster_x[9:3];
 
@@ -434,10 +441,9 @@ assign cycle_num = raster_x[9:3];
 reg allow_bad_lines;
 always @(posedge clk_dot4x)
 begin
-    //if (rst)
-    //    allow_bad_lines = `FALSE;
-    //else
-    if (~clk_phi && phi_phase_start[1]) begin
+    if (rst)
+        allow_bad_lines = `FALSE;
+    else if (~clk_phi && phi_phase_start[1]) begin
         // Use raster_line_d here on [1] before it transitions
         // to the next line in the low cycle so we can catch
         // den on the last cycle of line 48.  den01-49-1.prg
@@ -474,11 +480,10 @@ end
 // Raise raster irq once per raster line
 reg [8:0] raster_irq_compare_d;
 always @(posedge clk_dot4x) begin
-    //if (rst) begin
-    //    irst <= `FALSE;
-    //    raster_irq_triggered <= `FALSE;
-    //end else
-    begin
+    if (rst) begin
+        irst <= `FALSE;
+        raster_irq_triggered <= `FALSE;
+    end else begin
         if (clk_phi)
             raster_irq_compare_d <= raster_irq_compare;
         // To pass rasterirq_hold.prg, we have to make sure raster_irq_compare
@@ -951,14 +956,8 @@ registers vic_registers(
 `endif
               .standard_sw(standard_sw),
               .clk_dot4x(clk_dot4x),
-`ifdef EFINIX
 `ifdef WITH_DVI
               .clk_dvi(clk_dvi),
-`else
-              .clk_dvi(clk_dot4x),
-`endif
-`else
-              .clk_dvi(clk_dot4x),
 `endif
               .clk_phi(clk_phi),
               .phi_phase_start(phi_phase_start),
@@ -1337,9 +1336,8 @@ comp_sync vic_comp_sync(
 // so we use a different sync/pixel generator.  NOTE:  ANALOG_RGB_TIMING
 // must NOT be enabled for EFINIX, otherwise the ntsc timing will be
 // unusable.
-`ifdef EFINIX
-`ifdef WITH_DVI
-`define HAVE_SYNC_MODULE 1
+`ifdef HAVE_SYNC_MODULE
+`define WITH_DVI 1
 hires_dvi_sync vic_dvi_sync(
                    .rst(rst),
                    .rst_dvi(rst_dvi),
@@ -1365,7 +1363,7 @@ hires_dvi_sync vic_dvi_sync(
                    .xpos(xpos),
 `ifdef HIRES_MODES
                    .hires_raster_x(hires_raster_x),
-`endif
+`endif // HIRES_MODES
                    .chip(chip),
                    .pixel_color3(pixel_color3),
                    .hsync(hsync),
@@ -1374,15 +1372,14 @@ hires_dvi_sync vic_dvi_sync(
                    .pixel_color4(pixel_color4_vga),
                    .half_bright(half_bright)
                );
-`endif // WITH_DVI
-`endif // EFINIX
+`endif // HAVE_SYNC_MODULE
 
 // For Spartan6, we can share the same sync/pixel generator and
 // both analog RGB and DVI can be active at the same time.
 // ANALOG_RGB_TIMING should be enabled to avoid bad ntsc output
 // on some monitors. If we get here for EFINIX builds, then
 // we do not have DVI enabled.
-`ifndef HAVE_SYNC_MODULE
+`ifndef WITH_DVI
 hires_vga_sync vic_vga_sync(
                    .rst(rst),
                    .clk_dot4x(clk_dot4x),
@@ -1417,7 +1414,7 @@ hires_vga_sync vic_vga_sync(
                    .pixel_color4(pixel_color4_vga),
                    .half_bright(half_bright)
                );
-`endif // HAVE_SYNC_MODULE
+`endif // WITH_DVI
 
 `endif // NEED_RGB
 
