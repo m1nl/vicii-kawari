@@ -33,7 +33,7 @@ module rgb_RAM
            output reg [data_width-1:0] dout
        );
 
-(* ram_style = "distributed" *) reg [data_width-1:0] ram_loc[2**addr_width-1:0];
+reg [data_width-1:0] ram_loc[2**addr_width-1:0];
 
 always @(posedge wclk)
 begin
