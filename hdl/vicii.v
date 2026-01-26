@@ -96,6 +96,8 @@ module vicii
            output reg ba_d2, // output a delayed ba signal to match genuine
            output ras,
            output cas,
+           output cas_glitch,
+           input cas_glitch_disable,
            output ls245_data_dir,
            output ls245_addr_dir,
            output vic_write_db,
@@ -426,10 +428,21 @@ always @(posedge clk_dot4x)
     end else
         phi_phase_start <= {phi_phase_start[14:0], phi_phase_start[15]};
 
-assign phi2_l = !phi_gen[0] && phi_phase_start[1];
-assign phi2_p =  phi_gen[0] && phi_phase_start[0];
-assign phi2_h =  phi_gen[0] && phi_phase_start[7];
-assign phi2_n =  phi_gen[0] && phi_phase_start[15];
+
+// PHI2 clock generator
+reg phi2_cycle;
+
+assign phi2_l = phi2_cycle && !phi_gen[0] && phi_phase_start[9];  // ~280 ns from negative edge
+assign phi2_p = phi2_cycle &&  phi_gen[0] && phi_phase_start[0];  // positive edge
+assign phi2_h = phi2_cycle &&  phi_gen[0] && phi_phase_start[15]; // end of phi2 positive
+assign phi2_n = phi2_cycle && !phi_gen[0] && phi_phase_start[0];  // negative edge
+
+// ensure we skip one cycle of phi2_l to ensure VIC initializes first
+always @(posedge clk_dot4x)
+    if (rst)
+        phi2_cycle <= 1'b0;
+    else if (clk_phi)
+        phi2_cycle <= 1'b1;
 
 // This is simply raster_x divided by 8.
 assign cycle_num = raster_x[9:3];
@@ -870,6 +883,8 @@ addressgen vic_addressgen(
                .ras_registers(ras_registers),
 `endif
                .cas(cas),
+               .cas_glitch(cas_glitch),
+               .cas_glitch_disable(cas_glitch_disable),
                .bmm_old(bmm_delayed),
                .bmm_now(bmm),
                .ecm_old(ecm_delayed),

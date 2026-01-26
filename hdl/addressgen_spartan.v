@@ -1,17 +1,17 @@
 // This file is part of the vicii-kawari distribution
 // (https://github.com/randyrossi/vicii-kawari)
 // Copyright (c) 2022 Randy Rossi.
-// 
-// This program is free software: you can redistribute it and/or modify  
-// it under the terms of the GNU General Public License as published by  
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, version 3.
 //
-// This program is distributed in the hope that it will be useful, but 
-// WITHOUT ANY WARRANTY; without even the implied warranty of 
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License 
+// You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 `timescale 1ns / 1ps
@@ -115,7 +115,9 @@ module addressgen(
            input [15:0] phi_phase_start,
            output reg [11:0] ado,
            output ras,
-           output cas
+           output cas,
+           output cas_glitch,
+           input cas_glitch_disable
        );
 
 // Destinations for flattened inputs that need to be sliced back into an array
@@ -149,6 +151,8 @@ assign sprite_mc[7] = sprite_mc_o[5:0];
 
 // DRAM refresh counter
 reg [7:0] refc;
+
+assign cas_glitch = !cas_glitch_disable && (!aec && phi_phase_start[`CAS_GLITCH]);
 
 always @(posedge clk_dot4x)
 begin
@@ -236,7 +240,7 @@ begin
             ado <= {vic_addr[11:8], {2'b11, vic_addr[13:8]}};
         end else if (~chip[0] && phi_phase_start[`NTSC_MUX_COL]) begin
             ado <= {vic_addr[11:8], {2'b11, vic_addr[13:8]}};
-        end else if (phi_phase_start[`CAS_GLITCH]) begin
+        end else if (cas_glitch) begin
             // This is the post CAS address change glitch. The 8565 would not
             // do this.  If you want to 'fix' the 6569 bug, remove this block.
             ado <= {vic_addr_now[11:8], {2'b11, vic_addr_now[13:8]}};
