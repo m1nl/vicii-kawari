@@ -59,7 +59,6 @@ module vicii
            input rst_dvi,
            output [10:0] h_count_dvi,
            output [9:0] v_count_dvi,
-
 `endif
            output clk_phi,
            output phi2_l,
@@ -978,6 +977,7 @@ registers vic_registers(
               .clk_dot4x(clk_dot4x),
 `ifdef WITH_DVI
               .clk_dvi(clk_dvi),
+              .rst_dvi(rst_dvi),
 `endif
               .clk_phi(clk_phi),
               .phi_phase_start(phi_phase_start),

@@ -65,6 +65,7 @@ module registers
            input standard_sw,
            input clk_dot4x,
            input clk_dvi,
+           input rst_dvi,
            input clk_phi,
            input [15:0] phi_phase_start,
            input ras,
@@ -2199,7 +2200,7 @@ always @(posedge clk_dot4x)
 // amount of border on 720x576 PAL mode.
 always @(posedge clk_dvi)
 begin
-   if (rst) begin
+   if (rst_dvi) begin
       scale_ctr_raddr <= start_scale_raddr;
       weight1 <= 4'd9;
       weight2 <= 4'd1;
