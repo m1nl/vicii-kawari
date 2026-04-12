@@ -60,6 +60,7 @@ module vicii
            output [10:0] h_count_dvi,
            output [9:0] v_count_dvi,
 `endif
+           input stall,
            output clk_phi,
            output phi2_l,
            output phi2_p,
@@ -130,6 +131,7 @@ module vicii
 
 wire [9:0] xpos;
 wire [9:0] raster_x;
+wire [10:0] hires_raster_x;
 wire [8:0] raster_line;
 reg [3:0] pixel_color3;
 
@@ -313,7 +315,6 @@ wire [7:0] hires_cursor_hi;
 wire [7:0] hires_cursor_lo;
 wire hires_enabled;
 wire hires_allow_bad;
-wire [10:0] hires_raster_x;
 reg hires_badline;
 `endif
 `endif // WITH_EXTENSIONS
@@ -417,7 +418,7 @@ always @(posedge clk_dot4x)
 always @(posedge clk_dot4x)
     if (rst) begin
         phi_gen <= 32'b00000000000011111111111111110000;
-    end else begin
+    end else if (!stall) begin
         phi_gen <= {phi_gen[30:0], phi_gen[31]};
     end
 
@@ -428,7 +429,7 @@ assign clk_phi = phi_gen[0];
 always @(posedge clk_dot4x)
     if (rst) begin
         phi_phase_start <= 16'b0000000000001000;
-    end else
+    end else if (!stall)
         phi_phase_start <= {phi_phase_start[14:0], phi_phase_start[15]};
 
 
@@ -459,7 +460,7 @@ always @(posedge clk_dot4x)
 begin
     if (rst)
         allow_bad_lines = `FALSE;
-    else if (~clk_phi && phi_phase_start[1]) begin
+    else if (~clk_phi && phi_phase_start[1] && !stall) begin
         // Use raster_line_d here on [1] before it transitions
         // to the next line in the low cycle so we can catch
         // den on the last cycle of line 48.  den01-49-1.prg
@@ -499,7 +500,7 @@ always @(posedge clk_dot4x) begin
     if (rst) begin
         irst <= `FALSE;
         raster_irq_triggered <= `FALSE;
-    end else begin
+    end else if (!stall) begin
         if (clk_phi)
             raster_irq_compare_d <= raster_irq_compare;
         // To pass rasterirq_hold.prg, we have to make sure raster_irq_compare
@@ -613,11 +614,9 @@ raster vic_raster(
            .raster_y_max(raster_y_max),
            .xpos(xpos),
            .raster_x(raster_x),
-`ifdef HIRES_MODES
            .blink_ctr(blink_ctr),
            .dot_rising_2(dot_rising[2]),
            .hires_raster_x(hires_raster_x),
-`endif
            .sprite_raster_x(sprite_raster_x),
            .raster_line(raster_line),
            .raster_line_d(raster_line_d)
@@ -697,7 +696,7 @@ end
 // aec is lowered 3 cycles after ba went low
 reg ba1,ba2,ba3;
 always @(posedge clk_dot4x)
-    if (clk_phi == `TRUE && phi_phase_start[15]) begin
+    if (clk_phi == `TRUE && phi_phase_start[15] && !stall) begin
         ba1 <= ba;
         ba2 <= ba1 | ba;
         ba3 <= ba2 | ba;
@@ -799,8 +798,10 @@ sprites vic_sprites(
 reg aec2;
 always @(posedge clk_dot4x)
 begin
-    aec <= ba ? clk_phi : ba3 & clk_phi;
-    aec2 <= aec;
+    if (!stall) begin
+        aec <= ba ? clk_phi : ba3 & clk_phi;
+        aec2 <= aec;
+    end
 end
 
 // For reference, on LS245's:
@@ -1149,7 +1150,7 @@ registers vic_registers(
 always @(posedge clk_dot4x)
 begin
     // must be before badline idle reset in vic_matrix
-    if (clk_phi && phi_phase_start[0]) begin
+    if (clk_phi && phi_phase_start[0] && !stall) begin
 `ifdef SIMULATOR_BOARD
         reg11_delayed <= { raster_line[8], ecm, bmm, den, rsel, yscroll };
 `endif
@@ -1381,9 +1382,7 @@ hires_dvi_sync vic_dvi_sync(
                    .raster_x(raster_x),
                    .raster_y(raster_line),
                    .xpos(xpos),
-`ifdef HIRES_MODES
                    .hires_raster_x(hires_raster_x),
-`endif // HIRES_MODES
                    .chip(chip),
                    .pixel_color3(pixel_color3),
                    .hsync(hsync),
@@ -1425,9 +1424,7 @@ hires_vga_sync vic_vga_sync(
                    .raster_x(raster_x),
                    .raster_y(raster_line),
                    .xpos(xpos),
-`ifdef HIRES_MODES
                    .hires_raster_x(hires_raster_x),
-`endif
                    .chip(chip),
                    .pixel_color3(pixel_color3),
                    .hsync(hsync),

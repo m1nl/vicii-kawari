@@ -20,7 +20,11 @@
 
 module rgb_RAM
        #(
+`ifdef HIRES_MODES
            parameter addr_width = 11,
+`else
+           parameter addr_width = 10,
+`endif
            data_width = 36
        )
        (
@@ -1113,10 +1117,10 @@ begin
                             // reg overlay or video mem
                             port_selector <= 0;
                             read_ram(
-                                .overlay(flag_regs_overlay),
-                                .ram_lo(port_lo_1),
-                                .ram_hi(port_hi_1),
-                                .ram_idx(port_idx_1));
+                                flag_regs_overlay,
+                                port_lo_1,
+                                port_hi_1,
+                                port_idx_1);
                         end
                         `VIDEO_MEM_2_HI:
                             dbo[7:0] <= port_hi_2;
@@ -1127,10 +1131,10 @@ begin
                             // reg overlay or video mem
                             port_selector <= 1;
                             read_ram(
-                                .overlay(flag_regs_overlay),
-                                .ram_lo(port_lo_2),
-                                .ram_hi(port_hi_2),
-                                .ram_idx(port_idx_2));
+                                flag_regs_overlay,
+                                port_lo_2,
+                                port_hi_2,
+                                port_idx_2);
                         end
                         /* 0x3F */ `VIDEO_MEM_FLAGS:
                             dbo[7:0] <= { 1'b0,
@@ -1528,13 +1532,13 @@ begin
                                     // persistence lock must be open to allow
                                     port_selector <= 0;
                                     write_ram(
-                                        .overlay(flag_regs_overlay),
-                                        .ram_lo(port_lo_1),
-                                        .ram_hi(port_hi_1),
-                                        .ram_idx(port_idx_1),
-                                        .data(dbi),
-                                        .from_cpu(1'b1),
-                                        .do_persist(flag_persist));
+                                        flag_regs_overlay,
+                                        port_lo_1,
+                                        port_hi_1,
+                                        port_idx_1,
+                                        dbi,
+                                        1'b1,
+                                        flag_persist);
                                 end
                             end
                             `VIDEO_MEM_2_HI:
@@ -1547,13 +1551,13 @@ begin
                                 // persistence lock must be open to allow
                                 port_selector <= 1;
                                 write_ram(
-                                    .overlay(flag_regs_overlay),
-                                    .ram_lo(port_lo_2),
-                                    .ram_hi(port_hi_2),
-                                    .ram_idx(port_idx_2),
-                                    .data(dbi),
-                                    .from_cpu(1'b1),
-                                    .do_persist(flag_persist));
+                                    flag_regs_overlay,
+                                    port_lo_2,
+                                    port_hi_2,
+                                    port_idx_2,
+                                    dbi,
+                                    1'b1,
+                                    flag_persist);
                             end
                             default:;
                         endcase
@@ -1758,13 +1762,13 @@ begin
                 // NOTE: Ability to write into overlay with copy added in 1.16
                 if (flag_regs_overlay) begin
                    write_ram(
-                      .overlay(1'b1),
-                      .ram_lo(video_ram_copy_dst[7:0]),
-                      .ram_hi(8'd0),
-                      .ram_idx(8'd0),
-                      .data(video_ram_data_out_a),
-                      .from_cpu(1'b1),
-                      .do_persist(1'b0));
+                      1'b1,
+                      video_ram_copy_dst[7:0],
+                      8'd0,
+                      8'd0,
+                      video_ram_data_out_a,
+                      1'b1,
+                      1'b0);
                 end else begin
                    video_ram_wr_a <= 1'b1;
                    video_ram_addr_a <= video_ram_copy_dst[ram_width-1:0];
@@ -2144,9 +2148,9 @@ assign ired = (ired1 + ired2) / 10;
 wire [10:0] max_scale_raddr;
 wire [10:0] max_scale_waddr;
 wire [10:0] start_scale_raddr;
+assign start_scale_raddr = chip[0] ? 11'd48 : (chip[1] ? 11'd90 : 11'd78);
 assign max_scale_waddr = chip[0] ? 11'd1007 : (chip[1] ? 11'd1023 : 11'd1039);
 assign max_scale_raddr = chip[0] ? 11'd1026 : (chip[1] ? 11'd1013 : 11'd1015);
-assign start_scale_raddr = chip[0] ? 11'd48 : (chip[1] ? 11'd90 : 11'd78);
 `else
 // Simulator build doesn't handle continuous
 // assignments properly?
@@ -2155,9 +2159,9 @@ reg [10:0] max_scale_waddr;
 reg [10:0] start_scale_raddr;
 always @(posedge clk_dot4x)
 begin
-max_scale_waddr = chip[0] ? 11'd1007 : (chip[1] ? 11'd1023 : 11'd1039);
-max_scale_raddr = chip[0] ? 11'd1026 : (chip[1] ? 11'd1013 : 11'd1015);
 start_scale_raddr = chip[0] ? 11'd48 : (chip[1] ? 11'd90 : 11'd78);
+max_scale_waddr = (chip[0] ? 11'd1007 : (chip[1] ? 11'd1023 : 11'd1039));
+max_scale_raddr = (chip[0] ? 11'd1026 : (chip[1] ? 11'd1013 : 11'd1015));
 end
 `endif
 

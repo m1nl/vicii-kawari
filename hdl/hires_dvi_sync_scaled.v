@@ -159,9 +159,7 @@ endmodule
         input [9:0] raster_x, // native res counters
         input [8:0] raster_y, // native res counters
         input [9:0] xpos,
-`ifdef HIRES_MODES
         input [10:0] hires_raster_x,
-`endif
         input [3:0] pixel_color3,
         output reg hsync,             // horizontal sync
         output reg vsync,             // vertical sync
