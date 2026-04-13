@@ -25,7 +25,7 @@ module rgb_RAM
 `else
            parameter addr_width = 10,
 `endif
-           data_width = 36
+           parameter data_width = 36
        )
        (
            input wire wclk,
@@ -261,6 +261,7 @@ reg [1:0] extra_regs_activation_ctr;
 reg extra_regs_activated;
 reg [1:0] spi_reg_activation_ctr;
 reg spi_reg_activated;
+`endif
 
 `ifdef WITH_RAM
 // Flags to govern read accesses causing auto inc/dec
@@ -464,7 +465,7 @@ rgb_RAM lbr1(
     active_buf,
     clk_dvi,
     linebuf_color1
-);   
+);
 
 rgb_RAM lbr2(
     clk_dot4x,
@@ -474,7 +475,7 @@ rgb_RAM lbr2(
     ~active_buf,
     clk_dvi,
     linebuf_color2
-);   
+);
 
 `ifdef CONFIGURABLE_RGB
 COLOR_REGS color_regs(clk_dot4x,
@@ -543,7 +544,6 @@ LUMA_REGS luma_regs(clk_dot4x,
                     luma_regs_data_out_b // read value for luma lookups
                    );
 `endif
-`endif // WITH_EXTENSIONS
 
 `ifdef HAVE_EEPROM
 `include "registers_eeprom.vh"
@@ -669,12 +669,12 @@ begin
         //handle_sprite_crunch <= `FALSE;
 
 `ifdef NEED_RGB
-        //last_raster_lines <= 1'b0;
-        //last_is_native_y <= 1'b0;
-        //last_is_native_x <= 1'b0;
-        //last_enable_csync <= 1'b0;
-        //last_hpolarity <= 1'b0;
-        //last_vpolarity <= 1'b0;
+        last_raster_lines <= 1'b0;
+        last_is_native_y <= 1'b0;
+        last_is_native_x <= 1'b0;
+        last_enable_csync <= 1'b0;
+        last_hpolarity <= 1'b0;
+        last_vpolarity <= 1'b0;
 `endif
 
 `ifdef WITH_EXTENSIONS
