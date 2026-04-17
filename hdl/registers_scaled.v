@@ -55,7 +55,7 @@ endmodule
 module registers
        #(
            parameter ram_width = `VIDEO_RAM_WIDTH,
-           ram_hi_width = `VIDEO_RAM_HI_WIDTH
+           parameter ram_hi_width = `VIDEO_RAM_HI_WIDTH
        )
        (
            output reg rst = 1'b1,
@@ -2093,27 +2093,52 @@ end
 
 `ifdef NEED_RGB
 
-reg [17:0] output_color;
+wire [9:0] iblue1;
+wire [9:0] iblue2;
+
+wire [9:0] igreen1;
+wire [9:0] igreen2;
+
+wire [9:0] ired1;
+wire [9:0] ired2;
+
+wire [9:0] iblue;
+wire [9:0] igreen;
+wire [9:0] ired;
+
+wire [17:0] output_color;
+
+reg [9:0] iblue1_r;
+reg [9:0] iblue2_r;
+
+reg [9:0] igreen1_r;
+reg [9:0] igreen2_r;
+
+reg [9:0] ired1_r;
+reg [9:0] ired2_r;
+
+reg [9:0] iblue_r;
+reg [9:0] igreen_r;
+reg [9:0] ired_r;
+
 reg [5:0] final_red;
 reg [5:0] final_green;
 reg [5:0] final_blue;
+
 reg [3:0] weight1;
 reg [3:0] weight2;
 
-wire [9:0] iblue1;
-wire [9:0] iblue2;
-wire [9:0] iblue;
-wire [9:0] igreen1;
-wire [9:0] igreen2;
-wire [9:0] igreen;
-wire [9:0] ired1;
-wire [9:0] ired2;
-wire [9:0] ired;
+reg [1:0] active_buf_dvi;
+
+always @(posedge clk_dvi) begin
+    active_buf_dvi[0] <= active_buf;
+    active_buf_dvi[1] <= active_buf_dvi[0];
+end
 
 // Mux the final color based on active_buf. We read from
 // the buf we are not currently filling.
 wire [35:0] linebuf_color;
-assign linebuf_color = active_buf ? linebuf_color2 : linebuf_color1;
+assign linebuf_color = active_buf_dvi[1] ? linebuf_color2 : linebuf_color1;
 
 // Calculate the weighted sum for the two pixels this
 // output pixel spans across.  We are hard coded to do
@@ -2121,16 +2146,16 @@ assign linebuf_color = active_buf ? linebuf_color2 : linebuf_color1;
 // 2 pixels.
 assign iblue1 = (linebuf_color[5:0] * weight1);
 assign iblue2 = (linebuf_color[23:18] * weight2);
-assign iblue = (iblue1 + iblue2) / 10;
 
 assign igreen1 = (linebuf_color[11:6] * weight1);
 assign igreen2 = (linebuf_color[29:24] * weight2);
-assign igreen = (igreen1 + igreen2) / 10;
 
 assign ired1 = (linebuf_color[17:12] * weight1);
 assign ired2 = (linebuf_color[35:30] * weight2);
-assign ired = (ired1 + ired2) / 10;
 
+assign iblue  = (iblue1_r + iblue2_r) / 10;
+assign igreen = (igreen1_r + igreen2_r) / 10;
+assign ired   = (ired1_r + ired2_r) / 10;
 
 // Read this as:
 // IsPal ? PalVal otherwise is NTSCR56A? NTSCR56AVal otherwise NTSCR8Val
@@ -2143,14 +2168,16 @@ assign ired = (ired1 + ired2) / 10;
 // PAL       1007 , 881 / .9 = 978 + 44 = 1022
 // NTSCR56A  1017 , 832 / .9 = 923 + 90 = 1013
 // NTSCR8    1039 , 844 / .9 = 937 + 78 = 1015
-//
+
+localparam radjust = 2;
+
 `ifndef SIMULATOR_BOARD
 wire [10:0] max_scale_raddr;
 wire [10:0] max_scale_waddr;
 wire [10:0] start_scale_raddr;
-assign start_scale_raddr = chip[0] ? 11'd48 : (chip[1] ? 11'd90 : 11'd78);
-assign max_scale_waddr = chip[0] ? 11'd1007 : (chip[1] ? 11'd1023 : 11'd1039);
-assign max_scale_raddr = chip[0] ? 11'd1026 : (chip[1] ? 11'd1013 : 11'd1015);
+assign max_scale_waddr = (chip[0] ? 11'd1007 : (chip[1] ? 11'd1023 : 11'd1039));
+assign max_scale_raddr = (chip[0] ? 11'd1026 : (chip[1] ? 11'd1013 : 11'd1015)) + radjust;
+assign start_scale_raddr = (chip[0] ? 11'd48 : (chip[1] ? 11'd90 : 11'd78)) + radjust;
 `else
 // Simulator build doesn't handle continuous
 // assignments properly?
@@ -2159,9 +2186,9 @@ reg [10:0] max_scale_waddr;
 reg [10:0] start_scale_raddr;
 always @(posedge clk_dot4x)
 begin
-start_scale_raddr = chip[0] ? 11'd48 : (chip[1] ? 11'd90 : 11'd78);
 max_scale_waddr = (chip[0] ? 11'd1007 : (chip[1] ? 11'd1023 : 11'd1039));
-max_scale_raddr = (chip[0] ? 11'd1026 : (chip[1] ? 11'd1013 : 11'd1015));
+max_scale_raddr = (chip[0] ? 11'd1026 : (chip[1] ? 11'd1013 : 11'd1015)) + radjust;
+start_scale_raddr = (chip[0] ? 11'd48 : (chip[1] ? 11'd90 : 11'd78)) + radjust;
 end
 `endif
 
@@ -2224,16 +2251,31 @@ begin
 
          scale_ctr_raddr <= scale_ctr_raddr + (weight1 == 1 ? 11'd2 : 11'd1);
       end
-
-      final_blue = iblue[5:0];
-      final_green = igreen[5:0];
-      final_red = ired[5:0];
-
 //$display ("in=%d previn=%d srcx=%d dstx=%d b1=%d, b2=%d, weight1=%d, weight2=%d, ws=%d", color_regs_data_out_b[11:6] , prev_col[5:0], scale_ctr_raddr, scale_ctr_waddr, linebuf_color[5:0], linebuf_color[23:18], weight1, weight2, final_blue);
-
-      output_color <= {final_red, final_green, final_blue};
-   end
+    end
 end
+
+always @(posedge clk_dvi)
+begin
+    iblue1_r <= iblue1;
+    iblue2_r <= iblue2;
+
+    igreen1_r <= igreen1;
+    igreen2_r <= igreen2;
+
+    ired1_r <= ired1;
+    ired2_r <= ired2;
+
+    iblue_r  <= iblue;
+    igreen_r <= igreen;
+    ired_r   <= ired;
+
+    final_blue  <= iblue_r[5:0];
+    final_green <= igreen_r[5:0];
+    final_red   <= ired_r[5:0];
+end
+
+assign output_color = {final_red, final_green, final_blue};
 
 // At every pixel clock tick, set red,green,blue from color
 // register ram according to the pixel_color4 address.
