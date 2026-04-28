@@ -1,17 +1,17 @@
 // This file is part of the vicii-kawari distribution
 // (https://github.com/randyrossi/vicii-kawari)
 // Copyright (c) 2022 Randy Rossi.
-// 
-// This program is free software: you can redistribute it and/or modify  
-// it under the terms of the GNU General Public License as published by  
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, version 3.
 //
-// This program is distributed in the hope that it will be useful, but 
-// WITHOUT ANY WARRANTY; without even the implied warranty of 
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License 
+// You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 `timescale 1ns / 1ps
@@ -55,6 +55,7 @@
 // first (old bmm) address. (The glitch can't happen too soon after
 // CAS falls because it is delayed to RAM.)
 
+`ifndef RAS_CAS_CUSTOM
 // PAL CAS/RAS rise/fall times based on PAL clocks
 `define PAL_D4X_RAS_RISE_P 0
 `define PAL_D4X_CAS_RISE_P 0
@@ -94,6 +95,7 @@
 // block as where ado is set.  It can't be earlier because cycle type needs
 // to be valid and it doesn't become valid until at least [2].
 `define D4X_MUX_ROW_P 2
+`endif
 
 // Address generation
 module addressgen(

@@ -55,6 +55,7 @@
 // first (old bmm) address. (The glitch can't happen too soon after
 // CAS falls because it is delayed to RAM.)
 
+`ifndef RAS_CAS_CUSTOM
 // PAL CAS/RAS rise/fall times based on PAL dot4x clock
 `define PAL_RAS_RISE_P 15
 `define PAL_RAS_RISE_N 0
@@ -86,6 +87,7 @@
 // block as where ado is set.  It can't be earlier because cycle type needs
 // to be valid and it doesn't become valid until at least [2].
 `define MUX_ROW 2
+`endif
 
 // Address generation
 module addressgen(
