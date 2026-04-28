@@ -55,6 +55,7 @@ module registers
        )
        (
            output reg rst = 1'b1,
+           input rst_req,
 `ifdef HIRES_RESET
            input cpu_reset_i,
 `endif
@@ -608,7 +609,7 @@ end
 // Master process block for registers
 always @(posedge clk_dot4x)
 begin
-    handle_persist(rst);
+    handle_persist(rst_req);
 
     if (rst) begin
 

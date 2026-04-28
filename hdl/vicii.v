@@ -52,6 +52,7 @@ module vicii
 `endif
            input standard_sw,
            output rst,
+           input rst_req,
            input clk_dot4x,
 `ifdef HAVE_SYNC_MODULE
            input clk_dvi,
@@ -966,6 +967,7 @@ wire [7:0] timing_v_bporch;
 
 registers vic_registers(
               .rst(rst),
+              .rst_req(rst_req),
 `ifdef HIRES_RESET
               .cpu_reset_i(cpu_reset_i),
 `endif
