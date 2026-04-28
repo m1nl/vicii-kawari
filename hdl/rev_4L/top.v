@@ -16,6 +16,7 @@
 
 `timescale 1ns/1ps
 
+`include "../config.vh"
 `include "../common.vh"
 
 // Top level module for the Rev_4L board.

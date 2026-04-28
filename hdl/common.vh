@@ -17,8 +17,6 @@
 `ifndef common_vh_
 `define common_vh_
 
-`include "config.vh"
-
 // Some defines to get things to synthesize properly
 // between 4k, 32k and 64k video ram.  Some
 // concatenations and bit ranges need adjusting.
