@@ -2231,25 +2231,25 @@ end
 
 // At every pixel clock tick, set red,green,blue from color
 // register ram according to the pixel_color4 address.
-always @(posedge clk_dvi)
+always @(*)
 begin
+    red = 6'b0;
+    green = 6'b0;
+    blue = 6'b0;
+
 `ifndef HIDE_SYNC
     if (active) begin
 `endif
         if (half_bright) begin
-            red <= {1'b0, output_color[17:13]};
-            green <= {1'b0, output_color[11:7]};
-            blue <= {1'b0, output_color[5:1]};
+            red = {1'b0, output_color[17:13]};
+            green = {1'b0, output_color[11:7]};
+            blue = {1'b0, output_color[5:1]};
         end else begin
-            red <= output_color[17:12];
-            green <= output_color[11:6];
-            blue <= output_color[5:0];
+            red = output_color[17:12];
+            green = output_color[11:6];
+            blue = output_color[5:0];
         end
 `ifndef HIDE_SYNC
-    end else begin
-        red <= 6'b0;
-        green <= 6'b0;
-        blue <= 6'b0;
     end
 `endif
 end

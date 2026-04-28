@@ -56,6 +56,9 @@ module vicii
 `ifdef HAVE_SYNC_MODULE
            input clk_dvi,
            input rst_dvi,
+           output [10:0] dvi_h_count,
+           output [9:0] dvi_v_count,
+
 `endif
            output clk_phi,
            output phi2_l,
@@ -1385,7 +1388,9 @@ hires_dvi_sync vic_dvi_sync(
                    .vsync(vsync),
                    .active(active),
                    .pixel_color4(pixel_color4_vga),
-                   .half_bright(half_bright)
+                   .half_bright(half_bright),
+                   .h_count(dvi_h_count),
+                   .v_count(dvi_v_count)
                );
 `endif // HAVE_SYNC_MODULE
 

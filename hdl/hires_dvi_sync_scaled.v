@@ -170,7 +170,10 @@ endmodule
         output reg vsync,             // vertical sync
         output reg active,
         output reg [3:0] pixel_color4,
-        output reg half_bright
+        output reg half_bright,
+
+        output reg [10:0] h_count,  // output x position
+        output reg [9:0] v_count  // output y position
     );
 
 reg [10:0] max_width; // compared to hcount which can be 2x
@@ -186,9 +189,6 @@ reg [9:0] vs_end; // compared against vcount which can be 2y
 reg [9:0] va_sta; // compared against vcount which can be 2y
 reg [9:0] va_end; // compared against vcount which can be 2y
 
-reg [10:0] h_count;  // output x position
-reg [9:0] v_count;  // output y position
-
 wire hsync_ah;
 wire vsync_ah;
 wire csync_ah;
@@ -199,8 +199,10 @@ wire csync_int;
 
 // Active high
 assign hsync_ah = h_count >= hs_sta & h_count < hs_end;
-assign vsync_ah = ((v_count == vs_end & h_count < hs_end) | v_count < vs_end) &
-                  ((v_count == vs_sta & h_count >= hs_sta) | v_count > vs_sta);
+assign vsync_ah = (v_count > vs_sta && v_count < (vs_end - 1)) ||
+    (v_count == vs_sta && h_count >= hs_sta) ||
+    (v_count == (vs_end - 1) && h_count < hs_end);
+
 assign csync_ah = hsync_ah | vsync_ah;
 
 // Turn to active low if poliarity flag says so
@@ -215,41 +217,28 @@ begin
    vsync <= enable_csync ? 1'b0 : vsync_int;
 end
 
-// Note this is inverted so inclusive/exclusive comparisons swap
-// around for va_end and va_sta
-wire nvactive;
-wire pvactive;
-assign nvactive =
-               (v_count >= va_end) &
-               ((v_count == va_sta & h_count < ha_sta) | v_count < va_sta);
-assign pvactive =
-               (v_count < va_sta) |
-               ((v_count != va_end | h_count < ha_sta) & v_count >= va_end);
-
 // active: high during active pixel drawing
-always @ (posedge clk_dvi)
-begin
-   active <= ~(
-              (h_count > ha_end | h_count <= ha_sta) |
-              (chip[0] ? pvactive : nvactive)
-              );
-end
+always @(posedge clk_dvi)
+    active <= (h_count >= ha_sta && h_count < ha_end) &&
+        (v_count >= va_sta && v_count < va_end);
 
 always @ (posedge clk_dvi)
 begin
-    if (!rst_dvi) begin
+    if (rst_dvi) begin
+        h_count <= 0;
+        v_count <= 0;
+
+    end else begin
         // NOTE: Half H/W resolution feature was removed
-        if (raster_x_dvi == 0 && raster_y_dvi == 0) begin
-            h_count <= 0;
-            v_count <= 0;
-        end else if (h_count < max_width) begin
-            h_count <= h_count + 11'b1;
-        end else begin
+        if (h_count < max_width)
+            h_count <= h_count + 11'd1;
+        else begin
             h_count <= 0;
 
             if (v_count < max_height) begin
-                v_count <= v_count + 9'b1;
+                v_count <= v_count + 10'd1;
                 half_bright <= ~half_bright;
+
             end else begin
                 v_count <= 0;
                 half_bright <= 0;
@@ -360,7 +349,7 @@ always @(chip)
                 va_end=10'd592;  // start 592 (80)
                 vs_sta=10'd7;  // fporch   39 (624 wrap)
                 vs_end=10'd12;  // sync   5
-                va_sta=10'd17;  // bporch   5
+                va_sta=10'd16;  // bporch   5
                 // 576p = 592-17+1
                 max_height = 10'd623;
                 max_width = `PAL_MAX_WIDTH; 
