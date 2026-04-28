@@ -239,7 +239,10 @@ always @ (posedge clk_dvi)
 begin
     if (!rst_dvi) begin
         // NOTE: Half H/W resolution feature was removed
-        if (h_count < max_width) begin
+        if (raster_x_dvi == 0 && raster_y_dvi == 0) begin
+            h_count <= 0;
+            v_count <= 0;
+        end else if (h_count < max_width) begin
             h_count <= h_count + 11'b1;
         end else begin
             h_count <= 0;

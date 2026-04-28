@@ -1,17 +1,17 @@
 // This file is part of the vicii-kawari distribution
 // (https://github.com/randyrossi/vicii-kawari)
 // Copyright (c) 2022 Randy Rossi.
-// 
-// This program is free software: you can redistribute it and/or modify  
-// it under the terms of the GNU General Public License as published by  
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, version 3.
 //
-// This program is distributed in the hope that it will be useful, but 
-// WITHOUT ANY WARRANTY; without even the implied warranty of 
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License 
+// You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 `include "common.vh"
@@ -239,7 +239,10 @@ always @ (posedge clk_dvi)
 begin
     if (!rst_dvi) begin
         // NOTE: H/W half resolution feature was removed
-        if (h_count < max_width) begin
+        if (raster_x_dvi == 0 && raster_y_dvi == 0) begin
+            h_count <= 0;
+            v_count <= 0;
+        end else if (h_count < max_width) begin
             h_count <= h_count + 11'b1;
         end else begin
             h_count <= 0;
@@ -361,7 +364,7 @@ always @(chip)
                 va_sta=10'd17;  // bporch   5
                 // 576p = 592-17+1
                 max_height = 10'd623;
-                max_width = `PAL_MAX_WIDTH; 
+                max_width = `PAL_MAX_WIDTH;
                 x_offset = `PAL_OFFSET;
             end
             `CHIP6567R8: begin
