@@ -438,7 +438,7 @@ reg phi2_cycle;
 
 assign phi2_l = phi2_cycle && !phi_gen[0] && phi_phase_start[9];  // ~280 ns from negative edge
 assign phi2_p = phi2_cycle &&  phi_gen[0] && phi_phase_start[0];  // positive edge
-assign phi2_h = phi2_cycle &&  phi_gen[0] && phi_phase_start[15]; // end of phi2 positive
+assign phi2_h = phi2_cycle &&  phi_gen[0] && phi_phase_start[1];  // ~30 ns from positive edge
 assign phi2_n = phi2_cycle && !phi_gen[0] && phi_phase_start[0];  // negative edge
 
 // ensure we skip one cycle of phi2_l to ensure VIC initializes first
